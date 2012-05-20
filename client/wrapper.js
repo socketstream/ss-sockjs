@@ -4,9 +4,10 @@
 
 module.exports = function(serverStatus, message, config){
 
-  var config = config || {};
+  var config = config || {}; 
 
   return {
+
     connect: function(){
 
       var sock = new SockJS('/ws', {}, config);
@@ -66,6 +67,21 @@ module.exports = function(serverStatus, message, config){
      
       sock.onclose = function() {
         serverStatus.emit('disconnect');
+        // This is a total hack
+        if (window.bingo == undefined) {
+          window.bam = setInterval(function(){
+            window.bingo = true;
+            console.log("err");
+            if (["ready","reconnect"].indexOf(ss.server.event) != -1) {
+              ss.rpc("authentication.ping",function(res){console.log(res)})
+              serverStatus.emit('reconnect');
+              clearInterval(window.bam);
+              window.bingo = undefined;
+            } else {
+              ss.assignTransport({})("X|ok")
+            }
+          }, 2000);
+        }
       };
 
       // Return a function which is used to send all messages to the server
