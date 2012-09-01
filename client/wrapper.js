@@ -1,12 +1,13 @@
 // SockJS client-side Wrapper
-
-// TODO: Properly support re-connection
+var reconnectSwitch     = false;
+var reconnectionTimeout = 1000;
 
 module.exports = function(serverStatus, message, config){
 
-  var config = config || {};
+  var config = config || {}; 
 
   return {
+
     connect: function(){
 
       var sock = new SockJS('/ws', {}, config);
@@ -34,7 +35,12 @@ module.exports = function(serverStatus, message, config){
 
             // X = a system message
             case 'X':
-              serverStatus.emit('ready');
+              if (reconnectSwitch === false) {
+                serverStatus.emit('ready');
+              } else {
+                reconnectionTimeout = 1000;
+                serverStatus.emit('reconnect');
+              }
               break;
 
             // 0 = incoming events
@@ -64,8 +70,20 @@ module.exports = function(serverStatus, message, config){
 
       };
      
+      var attemptReconnect = function(time){
+        setTimeout(function(){
+          ss.assignTransport();
+          if (ss.server.event != "reconnect") {
+            reconnectionTimeout *= 1.5;
+          }
+        }, time);
+        clearTimeout();
+      };
+
       sock.onclose = function() {
+        reconnectSwitch = true;
         serverStatus.emit('disconnect');
+        attemptReconnect(reconnectionTimeout);
       };
 
       // Return a function which is used to send all messages to the server
