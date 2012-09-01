@@ -1,7 +1,9 @@
 // SockJS server-side wrapper
 
-var fs = require('fs'),
-    sockjs = require('sockjs');
+var fs                  = require('fs'),
+    sockjs              = require('sockjs'),
+    reconnectSwitch     = false,
+    reconnectionTimeout = 1000;
 
 var openSocketsById = {};
 

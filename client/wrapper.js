@@ -1,6 +1,6 @@
 // SockJS client-side Wrapper
-
-// TODO: Properly support re-connection
+var reconnectSwitch     = false;
+var reconnectionTimeout = 1000;
 
 module.exports = function(serverStatus, message, config){
 
@@ -35,7 +35,12 @@ module.exports = function(serverStatus, message, config){
 
             // X = a system message
             case 'X':
-              serverStatus.emit('ready');
+              if (reconnectSwitch === false) {
+                serverStatus.emit('ready');
+              } else {
+                reconnectionTimeout = 1000;
+                serverStatus.emit('reconnect');
+              }
               break;
 
             // 0 = incoming events
@@ -65,23 +70,20 @@ module.exports = function(serverStatus, message, config){
 
       };
      
+      var attemptReconnect = function(time){
+        setTimeout(function(){
+          ss.assignTransport();
+          if (ss.server.event != "reconnect") {
+            reconnectionTimeout *= 1.5;
+          }
+        }, time);
+        clearTimeout();
+      };
+
       sock.onclose = function() {
+        reconnectSwitch = true;
         serverStatus.emit('disconnect');
-        // This is a total hack
-        if (window.bingo == undefined) {
-          window.bam = setInterval(function(){
-            window.bingo = true;
-            console.log("err");
-            if (["ready","reconnect"].indexOf(ss.server.event) != -1) {
-              ss.rpc("authentication.ping",function(res){console.log(res)})
-              serverStatus.emit('reconnect');
-              clearInterval(window.bam);
-              window.bingo = undefined;
-            } else {
-              ss.assignTransport({})("X|ok")
-            }
-          }, 2000);
-        }
+        attemptReconnect(reconnectionTimeout);
       };
 
       // Return a function which is used to send all messages to the server
