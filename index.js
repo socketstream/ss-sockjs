@@ -50,7 +50,8 @@ module.exports = function(ss, messageEmitter, httpServer, config){
         if (responderId === 'X') {
 
           // Set the sessionId against this socket and tell the client we're ready for requests
-          socket.sessionId = content.split('.')[0];
+          var rawSessionId = content.split('.')[0];
+          socket.sessionId = rawSessionId.split(':')[1].replace(/\s/g, '+');
           socket.write('X|OK');
 
         // Otherwise go ahead and process a regular incoming message
