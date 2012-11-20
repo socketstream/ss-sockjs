@@ -2,7 +2,7 @@
   "name": "ss-sockjs",
   "author": "Owen Barnes <owen@socketstream.org>",
   "description": "SockJS websocket transport for SocketStream 0.3",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "./index.js",
   "repository": {
     "type" : "git",
@@ -12,7 +12,7 @@
     "node": ">= 0.6.0"
   },
   "dependencies": {
-    "sockjs": "0.3.1"
+    "sockjs": "0.3.4"
   },
   "devDependencies": {}
 }
