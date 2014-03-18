@@ -1,6 +1,7 @@
 // SockJS client-side Wrapper
 
-// TODO: Properly support re-connection
+var reconnectSwitch = false;
+var reconnectionTimeout = 1000;
 
 module.exports = function(serverStatus, message, config){
 
@@ -19,7 +20,7 @@ module.exports = function(serverStatus, message, config){
           console.error('Unable to obtain session ID');
         }
       };
-     
+
       sock.onmessage = function(e) {
 
         var i, x, msg = e.data;
@@ -27,19 +28,24 @@ module.exports = function(serverStatus, message, config){
         // Attempt to get the responderId from each message
         if ( (i = msg.indexOf('|')) > 0) {
 
-          var responderId = msg.substr(0, i), 
+          var responderId = msg.substr(0, i),
                   content = msg.substr(i+1);
 
           switch (responderId) {
 
             // X = a system message
             case 'X':
-              serverStatus.emit('ready');
+              if (reconnectSwitch === false) {
+                serverStatus.emit('ready');
+              } else {
+                reconnectionTimeout = 1000;
+                serverStatus.emit('reconnect');
+              }
               break;
 
             // 0 = incoming events
             // As events are so integral to SocketStream rather than breaking up the JSON message
-            // sent over the event transport for efficiencies sake we append the meta data (typically 
+            // sent over the event transport for efficiencies sake we append the meta data (typically
             // the channel name) at the end of the JSON message after the final pipe | character
             case '0':
               if ( (x = content.lastIndexOf('|')) > 0) {
@@ -50,7 +56,7 @@ module.exports = function(serverStatus, message, config){
                 console.error('Invalid event message received:', msg);
               }
               break;
-            
+
             // All other messages are passed directly to the relevant Request Responder
             default:
               message.emit(responderId, content);
@@ -63,9 +69,21 @@ module.exports = function(serverStatus, message, config){
         }
 
       };
-     
+
+      var attemptReconnect = function(time){
+        setTimeout(function(){
+          ss.assignTransport(config);
+          if (ss.server.event != "reconnect") {
+            reconnectionTimeout *= 1.5;
+          }
+        }, time);
+        clearTimeout();
+      };
+
       sock.onclose = function() {
+        reconnectSwitch = true;
         serverStatus.emit('disconnect');
+        attemptReconnect(reconnectionTimeout);
       };
 
       // Return a function which is used to send all messages to the server
