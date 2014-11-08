@@ -22,6 +22,9 @@ module.exports = function(ss, messageEmitter, httpServer, config){
   // Tell the SocketStream client to use this transport, passing any client-side config along to the wrapper
   ss.client.send('code', 'transport', "require('socketstream').assignTransport(" + JSON.stringify(config.client) + ");");
 
+  // don't set up server for CLI and test
+  if (httpServer == null) return;
+
   // Create a new SockJS server and bind to /ws
   var ws = sockjs.createServer(config.server);
   ws.installHandlers(httpServer, {prefix: '/ws'});
