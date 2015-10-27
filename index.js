@@ -6,7 +6,9 @@ var fs = require('fs'),
 var openSocketsById = {};
 
 module.exports = function(ss, messageEmitter, httpServer, config){
-
+  if (ss.version.indexOf('0.5.') === 0) {
+    ss.log.error('Please use internal SockJS transport, replace ss-sockjs with sockjs');
+  }
   var config = config || {};
   config.server = config.server || {};
   config.client = config.client || {};
@@ -40,13 +42,13 @@ module.exports = function(ss, messageEmitter, httpServer, config){
       var i;
 
       try {
-        
+
         // First parse raw incoming message to get responderId
         if ( (i = msg.indexOf('|')) > 0) {
 
           var responderId = msg.substr(0, i),
                   content = msg.substr(i+1);
-        
+
         } else { throw('Message does not contain a responderId');}
 
         // If this responderId is 'X', assume this is a system message
@@ -67,7 +69,7 @@ module.exports = function(ss, messageEmitter, httpServer, config){
           messageEmitter.emit(responderId, content, meta, function(data){
             socket.write(responderId + '|' + data);
           });
-        
+
         }
 
       } catch (e) {
@@ -90,7 +92,7 @@ module.exports = function(ss, messageEmitter, httpServer, config){
     event: function() {
 
       return {
-      
+
         // Send the same message to every open socket
         all: function(msg) {
           for (id in openSocketsById)
@@ -112,4 +114,3 @@ module.exports = function(ss, messageEmitter, httpServer, config){
     }
   }
 }
-
